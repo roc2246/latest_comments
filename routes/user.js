@@ -3,7 +3,7 @@ const router = express.Router();
 const User = require('../models/user')
 
 // Retrieves comments
-router.get('/user',  (req, res) => {
+router.get('/',  (req, res) => {
      User.find().then((result) => {
       res.send(result)
      }).catch((err) => {

@@ -8,8 +8,8 @@ const app = express();
 
 app.use(express.static('public'));
 app.use(express.json())
-app.use(userRouter)
-app.use(commentsRouter)
+app.use('/user', userRouter)
+app.use('/comments', commentsRouter)
 app.use(pageRouter)
 
 module.exports = app

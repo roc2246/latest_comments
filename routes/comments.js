@@ -2,25 +2,24 @@ const express = require("express");
 const router = express.Router();
 const Comment = require("../models/comments");
 
-// Retrieve Comments
-router.get("/comments", (req, res) => {
-  Comment.find()
-    .then((result) => {
-      res.send(result);
-    })
-    .catch((err) => {
-      console.log(err);
-    });
+// Getting comments
+router.get("/", async (req, res) => {
+  try {
+    const comments = await Comment.find();
+    res.json(comments);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 });
 
-// New Comment
-router.post("/newComment", async (req, res) => {
+// Creating Commet
+router.post("/", async (req, res) => {
   const comment = new Comment({
     id: req.body.id,
-    content: req.body.newcomment,
-    createdAt: req.body.createdat,
+    content: req.body.content,
+    createdAt: req.body.createdAt,
     score: 0,
-    replyingTo: req.body.replyingto,
+    replyingTo: req.body.replyingTo,
     user: {
       image: {
         png: req.body.user.image.png,
@@ -39,109 +38,47 @@ router.post("/newComment", async (req, res) => {
   }
 });
 
-// Update Comment
-router.patch("/updateComment/:id", async (req, res) => {
+// Updating Comment
+router.patch("/:id", getComment, async (req, res) => {
+  if (req.body.content != null) {
+    res.comment.content = req.body.content
+  }
   try {
-    const myId = JSON.parse(req.params.id);
-    let comment = await Comment.findOne({ id: myId });
+    const updatedComment = await res.comment.save()
+    res.json(updatedComment)
+  } catch (err) {
+    res.status(400).json({ message: err.message })
+  }
+});
 
-    if (req.body.content === undefined) {
-      comment.content = "Placeholder";
-    } else {
-      comment.content = req.body.content;
+// Deleting Comment
+router.delete("/:id", getComment, async (req, res) => {
+  try{
+    await res.comment.remove()
+    res.json({ message: 'Deleted Comment'})
+  }catch(err){
+    res.status(500).json({message : err.message})
+  }
+});
+
+// Creating Reply
+// Updating Reply
+// Deleting Reply
+
+// Middleware
+async function getComment(req, res, next) {
+  let comment;
+  try {
+    comment = await Comment.findOne({id : req.params.id});
+
+    if ((comment === null)) {
+      return res.status(400).json({ message: "Cannot find comment" });
     }
-    console.log(req.body.content);
-
-    const update = await comment.save();
-    res.status(201).json(update);
-  } catch (e) {
-    res.status(400).json(e);
-    console.log(e);
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
   }
-});
-
-// Delete Comment
-router.delete("/comments/:id", async (req, res) => {
-  try {
-    const myId = req.params.id;
-
-    const comment = await Comment.findOneAndDelete({ id: myId });
-
-    res.send(comment);
-  } catch (e) {
-    res.status(500).send(e);
-  }
-});
-
-// New Reply
-router.patch("/comments/:id", async (req, res) => {
-  try {
-    const myId = JSON.parse(req.params.id);
-
-    let comment = await Comment.findOne({ id: myId });
-    const reply = {
-      id: req.body.id,
-      content: req.body.newcomment,
-      createdAt: req.body.createdat,
-      score: 0,
-      replyingTo: req.body.replyingto,
-      user: {
-        image: {
-          png: req.body.user.image.png,
-          webp: req.body.user.image.webp,
-        },
-        username: req.body.user.username,
-      },
-    };
-    comment.replies = [...comment.replies, reply];
-
-    const newReply = await comment.save();
-    res.status(201).json(newReply);
-  } catch (e) {
-    res.status(400).json(e);
-    console.log(e);
-  }
-});
-
-// Update Reply
-router.patch("/replies/:id", async (req, res) => {
-  try {
-    const replyId = JSON.parse(req.params.id);
-
-    let comment = await Comment.findOne({ "replies.id": replyId });
-    const replyIndex = comment.replies.findIndex(
-      (reply) => reply.id === replyId
-    );
-
-    if (req.body.content === undefined) {
-      comment.replies[replyIndex].content = "Placeholder";
-    } else {
-      comment.replies[replyIndex].content = req.body.content;
-    }
-
-    const update = await comment.save();
-    res.status(201).json(update);
-  } catch (e) {
-    res.status(400).json(e);
-    console.log(e);
-  }
-});
-
-// Delete Reply
-router.delete("/replies/:id", async (req, res) => {
-  try {
-    const replyId = JSON.parse(req.params.id);
-
-    let comment = await Comment.findOne({ "replies.id": replyId });
-
-    const filter = comment.replies.filter((reply) => reply.id !== replyId);
-    comment.replies = filter;
-
-    const newReplies = await comment.save();
-    res.status(201).json(newReplies);
-  } catch (e) {
-    res.status(500).send(e);
-  }
-});
+  res.comment = comment;
+  next();
+}
 
 module.exports = router;
